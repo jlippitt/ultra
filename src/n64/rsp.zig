@@ -59,6 +59,8 @@ pub fn write(addr: u20, value: u32) void {
 fn readRegister(addr: u3) u32 {
     return switch (addr) {
         4 => @bitCast(_status),
+        5 => @intFromBool(_status.dma_full),
+        6 => @intFromBool(_status.dma_busy),
         else => std.debug.panic("TODO: RSP register read: {}", .{addr}),
     };
 }

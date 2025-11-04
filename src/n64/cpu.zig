@@ -1,5 +1,6 @@
 const std = @import("std");
 const rsp = @import("./rsp.zig");
+const pi = @import("./peripheral.zig");
 const si = @import("./serial.zig");
 const util = @import("./util.zig");
 const arithmetic = @import("./cpu/arithmetic.zig");
@@ -193,6 +194,9 @@ fn write(comptime T: type, paddr: u29, value: T) void {
 
     return switch (memory_map[paddr >> 20]) {
         .rsp => rsp.write(@truncate(paddr), value),
+        .video_interface => {}, // Ignore for now
+        .audio_interface => {}, // Ignore for now
+        .peripheral_interface => pi.writeInterface(@truncate(paddr), value),
         else => std.debug.panic("Unmapped CPU write: {X:08}", .{paddr}),
     };
 }
