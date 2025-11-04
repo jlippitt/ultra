@@ -34,3 +34,11 @@ pub fn bitTruncate(comptime T: type, value: anytype) T {
 pub fn writeWithMask(comptime T: type, reg: *T, mask: T, value: T) void {
     reg.* = (reg.* & ~mask) | (value & mask);
 }
+
+pub fn toggleBitField(reg: anytype, comptime field: []const u8, value: u32, shift: u5) void {
+    switch (@as(u2, @truncate(value >> shift))) {
+        1 => @field(reg, field) = false,
+        2 => @field(reg, field) = true,
+        else => {},
+    }
+}
