@@ -21,7 +21,7 @@ pub fn memory(comptime op: Operator) void {
         cpu.pc(),
         op,
         cpu.reg_names[rt],
-        offset,
+        @as(i32, @bitCast(offset)),
         cpu.reg_names[base],
     });
 
