@@ -1,0 +1,12 @@
+.{
+    .name = .ultra,
+    .version = "0.0.0",
+    .fingerprint = 0xf2a45a2f9f07088f, // Changing this has security and trust implications.
+    .minimum_zig_version = "0.15.2",
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
