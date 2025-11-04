@@ -1,5 +1,6 @@
 const std = @import("std");
 const clap = @import("clap");
+const n64 = @import("./n64.zig");
 
 const max_file_size = 1073741824; // 1GiB
 
@@ -47,6 +48,10 @@ pub fn main() !void {
     };
     defer allocator.free(rom);
 
-    std.debug.print("PIF: {any}\n", .{pif});
-    std.debug.print("ROM: {d}\n", .{rom.len});
+    n64.init(&pif, rom);
+    defer n64.deinit();
+
+    while (true) {
+        n64.step();
+    }
 }

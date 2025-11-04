@@ -1,0 +1,22 @@
+const std = @import("std");
+
+pub fn bitExtend(
+    comptime signedness: std.builtin.Signedness,
+    comptime T: type,
+    value: anytype,
+) T {
+    const src_bits = comptime @typeInfo(@TypeOf(value)).int.bits;
+    const dst_bits = comptime @typeInfo(T).int.bits;
+    comptime std.debug.assert(dst_bits >= src_bits);
+    const signed: std.meta.Int(signedness, src_bits) = @bitCast(value);
+    const extended: std.meta.Int(signedness, dst_bits) = signed;
+    return @bitCast(extended);
+}
+
+pub fn signExtend(comptime T: type, value: anytype) T {
+    return bitExtend(.signed, T, value);
+}
+
+pub fn zeroExtend(comptime T: type, value: anytype) T {
+    return bitExtend(.unsigned, T, value);
+}
