@@ -6,6 +6,7 @@ const util = @import("./util.zig");
 const arithmetic = @import("./cpu/arithmetic.zig");
 const branch = @import("./cpu/branch.zig");
 const cp0 = @import("./cpu/cp0.zig");
+const jump = @import("./cpu/jump.zig");
 const load = @import("./cpu/load.zig");
 const logic = @import("./cpu/logic.zig");
 const store = @import("./cpu/store.zig");
@@ -20,6 +21,10 @@ pub const reg_names: [32][]const u8 = .{
 pub const BranchParams = struct {
     link: bool = false,
     likely: bool = false,
+};
+
+pub const JumpParams = struct {
+    link: bool = false,
 };
 
 const cold_reset_vector = 0xbfc0_0000;
@@ -149,9 +154,20 @@ pub fn branchTo(comptime params: BranchParams, condition: bool, offset: u32) voi
     }
 }
 
+pub fn jumpTo(target: u32) void {
+    if (_delay[0]) {
+        @branchHint(.unlikely);
+        return;
+    }
+
+    _delay[1] = true;
+    _pc[2] = target;
+}
+
 pub fn readData(comptime T: type, vaddr: u32) T {
     const value = blk: {
         if ((vaddr & 0xc000_0000) == 0x8000_0000) {
+            @branchHint(.likely);
             break :blk read(T, @truncate(vaddr));
         }
 
@@ -167,6 +183,7 @@ pub fn writeData(comptime T: type, vaddr: u32, value: T) void {
     std.log.debug("  [{X:08} <= {s}]", .{ vaddr, util.hexFmt(value) });
 
     if ((vaddr & 0xc000_0000) == 0x8000_0000) {
+        @branchHint(.likely);
         return write(T, @truncate(vaddr), value);
     }
 
@@ -177,6 +194,7 @@ fn readInstruction() u32 {
     const vaddr = _pc[1];
 
     if ((vaddr & 0xc000_0000) == 0x8000_0000) {
+        @branchHint(.likely);
         return read(u32, @truncate(vaddr));
     }
 
@@ -218,6 +236,7 @@ fn dispatch() void {
     }
 
     switch (opcode) {
+        0o00 => dispatchSpecial(),
         0o01 => dispatchRegImm(),
         0o04 => branch.binary(.BEQ, .{}),
         0o05 => branch.binary(.BNE, .{}),
@@ -250,6 +269,15 @@ fn dispatch() void {
         0o67 => load.memory(.LD),
         0o77 => store.memory(.SD),
         else => std.debug.panic("CPU opcode {o:02} not yet implemented", .{opcode}),
+    }
+}
+
+fn dispatchSpecial() void {
+    const func: u6 = @truncate(word());
+
+    switch (func) {
+        0o10 => jump.jr(),
+        else => std.debug.panic("CPU special function {o:02} not yet implemented", .{func}),
     }
 }
 
