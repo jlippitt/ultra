@@ -1,6 +1,8 @@
 const std = @import("std");
 const util = @import("./util.zig");
 
+var _mem: *align(8) [8192]u8 = undefined;
+
 var _status: packed struct(u32) {
     halted: bool = true,
     broke: bool = false,
@@ -20,13 +22,17 @@ var _status: packed struct(u32) {
     _: u17 = 0,
 } = .{};
 
-pub fn init() void {}
+pub fn init(allocator: std.mem.Allocator) !void {
+    _mem = (try allocator.alignedAlloc(u8, .@"8", 8192))[0..8192];
+}
 
-pub fn deinit() void {}
+pub fn deinit(allocator: std.mem.Allocator) void {
+    allocator.free(_mem);
+}
 
 pub fn read(addr: u20) u32 {
     if ((addr & 0xc_0000) == 0) {
-        std.debug.panic("TODO: RSP DMEM/IMEM reads", .{});
+        return std.mem.readInt(u32, _mem[(addr & 0x1fff)..][0..4], .big);
     }
 
     if ((addr & 0xc_0000) == 0x4_0000) {
@@ -42,7 +48,8 @@ pub fn read(addr: u20) u32 {
 
 pub fn write(addr: u20, value: u32) void {
     if ((addr & 0xc_0000) == 0) {
-        std.debug.panic("TODO: RSP DMEM/IMEM writes", .{});
+        std.mem.writeInt(u32, _mem[(addr & 0x1fff)..][0..4], value, .big);
+        return;
     }
 
     if ((addr & 0xc_0000) == 0x4_0000) {

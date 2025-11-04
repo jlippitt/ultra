@@ -48,8 +48,8 @@ pub fn main() !void {
     };
     defer allocator.free(rom);
 
-    n64.init(&pif, rom);
-    defer n64.deinit();
+    try n64.init(allocator, &pif, rom);
+    defer n64.deinit(allocator);
 
     while (true) {
         n64.step();

@@ -31,8 +31,10 @@ pub fn bitTruncate(comptime T: type, value: anytype) T {
     return @bitCast(truncated);
 }
 
-pub fn writeWithMask(comptime T: type, reg: *T, mask: T, value: T) void {
-    reg.* = (reg.* & ~mask) | (value & mask);
+pub fn hexFmt(value: anytype) [@typeInfo(@TypeOf(value)).int.bits >> 2]u8 {
+    const size = comptime @typeInfo(@TypeOf(value)).int.bits >> 3;
+    const bytes: [size]u8 = @bitCast(@byteSwap(value));
+    return std.fmt.bytesToHex(bytes, .upper);
 }
 
 pub fn toggleBitField(reg: anytype, comptime field: []const u8, value: u32, shift: u5) void {
@@ -41,4 +43,8 @@ pub fn toggleBitField(reg: anytype, comptime field: []const u8, value: u32, shif
         2 => @field(reg, field) = true,
         else => {},
     }
+}
+
+pub fn writeWithMask(comptime T: type, reg: *T, mask: T, value: T) void {
+    reg.* = (reg.* & ~mask) | (value & mask);
 }

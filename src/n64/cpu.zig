@@ -150,14 +150,22 @@ pub fn branchTo(comptime params: BranchParams, condition: bool, offset: u32) voi
 }
 
 pub fn readData(comptime T: type, vaddr: u32) T {
-    if ((vaddr & 0xc000_0000) == 0x8000_0000) {
-        return read(T, @truncate(vaddr));
-    }
+    const value = blk: {
+        if ((vaddr & 0xc000_0000) == 0x8000_0000) {
+            break :blk read(T, @truncate(vaddr));
+        }
 
-    std.debug.panic("TLB not yet implemented", .{});
+        std.debug.panic("TLB not yet implemented", .{});
+    };
+
+    std.log.debug("  [{X:08} => {s}]", .{ vaddr, util.hexFmt(value) });
+
+    return value;
 }
 
 pub fn writeData(comptime T: type, vaddr: u32, value: T) void {
+    std.log.debug("  [{X:08} <= {s}]", .{ vaddr, util.hexFmt(value) });
+
     if ((vaddr & 0xc000_0000) == 0x8000_0000) {
         return write(T, @truncate(vaddr), value);
     }
