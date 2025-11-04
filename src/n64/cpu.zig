@@ -1,6 +1,8 @@
 const std = @import("std");
+const rsp = @import("./rsp.zig");
 const si = @import("./serial.zig");
 const cp0 = @import("./cpu/cp0.zig");
+const load = @import("./cpu/load.zig");
 const logic = @import("./cpu/logic.zig");
 
 pub const reg_names: [32][]const u8 = .{
@@ -111,6 +113,14 @@ pub fn set(reg: u5, value: u64) void {
     std.log.debug("  {s}: {X:016}", .{ reg_names[reg], value });
 }
 
+pub fn readData(comptime T: type, vaddr: u32) T {
+    if ((vaddr & 0xc000_0000) == 0x8000_0000) {
+        return read(T, @truncate(vaddr));
+    }
+
+    std.debug.panic("TLB not yet implemented", .{});
+}
+
 fn readInstruction() u32 {
     const vaddr = _pc[1];
 
@@ -127,6 +137,7 @@ fn read(comptime T: type, paddr: u29) T {
     }
 
     return switch (memory_map[paddr >> 20]) {
+        .rsp => rsp.read(@truncate(paddr)),
         .pif => si.readPif(@truncate(paddr)),
         else => std.debug.panic("Unmapped CPU read: {X:08}", .{paddr}),
     };
@@ -146,6 +157,13 @@ fn dispatch() void {
         0o16 => logic.iType(.XOR),
         0o17 => logic.lui(),
         0o20 => cp0.dispatch(),
+        0o40 => load.memory(.LB),
+        0o41 => load.memory(.LH),
+        0o43 => load.memory(.LW),
+        0o44 => load.memory(.LBU),
+        0o45 => load.memory(.LHU),
+        0o47 => load.memory(.LWU),
+        0o67 => load.memory(.LD),
         else => std.debug.panic("CPU opcode {o:02} not yet implemented", .{opcode}),
     }
 }
