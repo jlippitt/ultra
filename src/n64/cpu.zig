@@ -1,6 +1,8 @@
 const std = @import("std");
 const rsp = @import("./rsp.zig");
 const si = @import("./serial.zig");
+const util = @import("./util.zig");
+const branch = @import("./cpu/branch.zig");
 const cp0 = @import("./cpu/cp0.zig");
 const load = @import("./cpu/load.zig");
 const logic = @import("./cpu/logic.zig");
@@ -10,6 +12,11 @@ pub const reg_names: [32][]const u8 = .{
     "T0",   "T1", "T2", "T3", "T4", "T5", "T6", "T7",
     "S0",   "S1", "S2", "S3", "S4", "S5", "S6", "S7",
     "T8",   "T9", "K0", "K1", "GP", "SP", "FP", "RA",
+};
+
+pub const BranchParams = struct {
+    link: bool = false,
+    likely: bool = false,
 };
 
 const cold_reset_vector = 0xbfc0_0000;
@@ -113,6 +120,28 @@ pub fn set(reg: u5, value: u64) void {
     std.log.debug("  {s}: {X:016}", .{ reg_names[reg], value });
 }
 
+pub fn branchTo(comptime params: BranchParams, condition: bool, offset: u32) void {
+    if (!_delay[0]) {
+        @branchHint(.likely);
+        _delay[1] = true;
+
+        if (condition) {
+            std.log.debug("Branch taken", .{});
+            _pc[2] = _pc[0] +% offset +% 4;
+        } else {
+            std.log.debug("Branch not taken", .{});
+
+            if (comptime params.likely) {
+                _word[1] = 0;
+            }
+        }
+    }
+
+    if (comptime params.link) {
+        set(31, util.signExtend(u64, _pc[1] +% 4));
+    }
+}
+
 pub fn readData(comptime T: type, vaddr: u32) T {
     if ((vaddr & 0xc000_0000) == 0x8000_0000) {
         return read(T, @truncate(vaddr));
@@ -146,16 +175,25 @@ fn read(comptime T: type, paddr: u29) T {
 fn dispatch() void {
     const opcode: u6 = @truncate(word() >> 26);
 
-    if (opcode == 0o00) {
+    if (word() == 0) {
         std.log.debug("{X:08}: NOP", .{pc()});
         return;
     }
 
     switch (opcode) {
+        0o01 => dispatchRegImm(),
+        0o04 => branch.binary(.BEQ, .{}),
+        0o05 => branch.binary(.BNE, .{}),
+        0o06 => branch.unary(.BLEZ, .{}),
+        0o07 => branch.unary(.BGTZ, .{}),
         0o14 => logic.iType(.AND),
         0o15 => logic.iType(.OR),
         0o16 => logic.iType(.XOR),
         0o17 => logic.lui(),
+        0o24 => branch.binary(.BEQ, .{ .likely = true }),
+        0o25 => branch.binary(.BNE, .{ .likely = true }),
+        0o26 => branch.unary(.BLEZ, .{ .likely = true }),
+        0o27 => branch.unary(.BGTZ, .{ .likely = true }),
         0o20 => cp0.dispatch(),
         0o40 => load.memory(.LB),
         0o41 => load.memory(.LH),
@@ -165,5 +203,21 @@ fn dispatch() void {
         0o47 => load.memory(.LWU),
         0o67 => load.memory(.LD),
         else => std.debug.panic("CPU opcode {o:02} not yet implemented", .{opcode}),
+    }
+}
+
+fn dispatchRegImm() void {
+    const opcode = rt();
+
+    switch (opcode) {
+        0o00 => branch.unary(.BLTZ, .{}),
+        0o01 => branch.unary(.BGEZ, .{}),
+        0o02 => branch.unary(.BLTZ, .{ .likely = true }),
+        0o03 => branch.unary(.BGEZ, .{ .likely = true }),
+        0o20 => branch.unary(.BLTZ, .{ .link = true }),
+        0o21 => branch.unary(.BGEZ, .{ .link = true }),
+        0o22 => branch.unary(.BLTZ, .{ .link = true, .likely = true }),
+        0o23 => branch.unary(.BGEZ, .{ .link = true, .likely = true }),
+        else => std.debug.panic("CPU RegImm opcode {o:02} not yet implemented", .{opcode}),
     }
 }
