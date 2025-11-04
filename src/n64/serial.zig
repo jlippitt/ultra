@@ -4,6 +4,7 @@ var _pif: *align(4) [2048]u8 = undefined;
 
 pub fn init(pif: *align(4) [2048]u8) void {
     _pif = pif;
+    _pif[0x7ff] = 0;
 }
 
 pub fn deinit() void {}
