@@ -141,6 +141,9 @@ fn dispatch() void {
     }
 
     switch (opcode) {
+        0o14 => logic.iType(.AND),
+        0o15 => logic.iType(.OR),
+        0o16 => logic.iType(.XOR),
         0o17 => logic.lui(),
         0o20 => cp0.dispatch(),
         else => std.debug.panic("CPU opcode {o:02} not yet implemented", .{opcode}),
