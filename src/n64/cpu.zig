@@ -2,6 +2,7 @@ const std = @import("std");
 const rsp = @import("./rsp.zig");
 const si = @import("./serial.zig");
 const util = @import("./util.zig");
+const arithmetic = @import("./cpu/arithmetic.zig");
 const branch = @import("./cpu/branch.zig");
 const cp0 = @import("./cpu/cp0.zig");
 const load = @import("./cpu/load.zig");
@@ -59,7 +60,7 @@ const memory_map: [512]Device = blk: {
 var _pc: [3]u32 = @splat(cold_reset_vector);
 var _delay: [2]bool = @splat(false);
 var _word: [2]u32 = @splat(0);
-var _regs: [32]u64 = undefined;
+var _regs: [32]u64 = @splat(0);
 
 pub fn init() void {
     cp0.init();
@@ -116,6 +117,10 @@ pub fn get(reg: u5) u64 {
 }
 
 pub fn set(reg: u5, value: u64) void {
+    if (reg == 0) {
+        return;
+    }
+
     _regs[reg] = value;
     std.log.debug("  {s}: {X:016}", .{ reg_names[reg], value });
 }
@@ -186,15 +191,21 @@ fn dispatch() void {
         0o05 => branch.binary(.BNE, .{}),
         0o06 => branch.unary(.BLEZ, .{}),
         0o07 => branch.unary(.BGTZ, .{}),
+        0o10 => arithmetic.iType(.ADD, .signed),
+        0o11 => arithmetic.iType(.ADD, .unsigned),
+        0o12 => arithmetic.iType(.SLT, .signed),
+        0o13 => arithmetic.iType(.SLT, .unsigned),
         0o14 => logic.iType(.AND),
         0o15 => logic.iType(.OR),
         0o16 => logic.iType(.XOR),
         0o17 => logic.lui(),
+        0o20 => cp0.dispatch(),
         0o24 => branch.binary(.BEQ, .{ .likely = true }),
         0o25 => branch.binary(.BNE, .{ .likely = true }),
         0o26 => branch.unary(.BLEZ, .{ .likely = true }),
         0o27 => branch.unary(.BGTZ, .{ .likely = true }),
-        0o20 => cp0.dispatch(),
+        0o30 => arithmetic.iType(.DADD, .signed),
+        0o31 => arithmetic.iType(.DADD, .unsigned),
         0o40 => load.memory(.LB),
         0o41 => load.memory(.LH),
         0o43 => load.memory(.LW),
