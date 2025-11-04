@@ -1,15 +1,16 @@
 const std = @import("std");
 const si = @import("./serial.zig");
-const interpreter = @import("./cpu/interpreter.zig");
+const cp0 = @import("./cpu/cp0.zig");
+const logic = @import("./cpu/logic.zig");
+
+pub const reg_names: [32][]const u8 = .{
+    "ZERO", "AT", "V0", "V1", "A0", "A1", "A2", "A3",
+    "T0",   "T1", "T2", "T3", "T4", "T5", "T6", "T7",
+    "S0",   "S1", "S2", "S3", "S4", "S5", "S6", "S7",
+    "T8",   "T9", "K0", "K1", "GP", "SP", "FP", "RA",
+};
 
 const cold_reset_vector = 0xbfc0_0000;
-
-const IType = packed struct(u32) {
-    imm: u16,
-    rt: u5,
-    rs: u5,
-    opcode: u6,
-};
 
 const Device = enum(u8) {
     rdram_data,
@@ -26,13 +27,6 @@ const Device = enum(u8) {
     cartridge_rom,
     pif,
     open_bus,
-};
-
-const reg_names: [32][]const u8 = .{
-    "ZERO", "AT", "V0", "V1", "A0", "A1", "A2", "A3",
-    "T0",   "T1", "T2", "T3", "T4", "T5", "T6", "T7",
-    "S0",   "S1", "S2", "S3", "S4", "S5", "S6", "S7",
-    "T8",   "T9", "K0", "K1", "GP", "SP", "FP", "RA",
 };
 
 const memory_map: [512]Device = blk: {
@@ -58,12 +52,16 @@ var _delay: [2]bool = @splat(false);
 var _word: [2]u32 = @splat(0);
 var _regs: [32]u64 = undefined;
 
-pub fn init() void {}
+pub fn init() void {
+    cp0.init();
+}
 
-pub fn deinit() void {}
+pub fn deinit() void {
+    cp0.deinit();
+}
 
 pub fn step() void {
-    interpreter.dispatch();
+    dispatch();
 
     _pc[0] = _pc[1];
     _pc[1] = _pc[2];
@@ -80,12 +78,32 @@ pub fn pc() u32 {
     return _pc[0];
 }
 
-pub fn opcode() u6 {
-    return @truncate(_word[0] >> 26);
+pub fn word() u32 {
+    return _word[0];
 }
 
-pub fn iType() IType {
-    return @bitCast(_word[0]);
+pub fn rs() u5 {
+    return @truncate(word() >> 21);
+}
+
+pub fn rt() u5 {
+    return @truncate(word() >> 16);
+}
+
+pub fn rd() u5 {
+    return @truncate(word() >> 11);
+}
+
+pub fn sa() u5 {
+    return @truncate(word() >> 6);
+}
+
+pub fn imm() u16 {
+    return @truncate(word());
+}
+
+pub fn get(reg: u5) u64 {
+    return _regs[reg];
 }
 
 pub fn set(reg: u5, value: u64) void {
@@ -112,4 +130,19 @@ fn read(comptime T: type, paddr: u29) T {
         .pif => si.readPif(@truncate(paddr)),
         else => std.debug.panic("Unmapped CPU read: {X:08}", .{paddr}),
     };
+}
+
+fn dispatch() void {
+    const opcode: u6 = @truncate(word() >> 26);
+
+    if (opcode == 0o00) {
+        std.log.debug("{X:08}: NOP", .{pc()});
+        return;
+    }
+
+    switch (opcode) {
+        0o17 => logic.lui(),
+        0o20 => cp0.dispatch(),
+        else => std.debug.panic("CPU opcode {o:02} not yet implemented", .{opcode}),
+    }
 }

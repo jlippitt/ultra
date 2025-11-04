@@ -20,3 +20,17 @@ pub fn signExtend(comptime T: type, value: anytype) T {
 pub fn zeroExtend(comptime T: type, value: anytype) T {
     return bitExtend(.unsigned, T, value);
 }
+
+pub fn bitTruncate(comptime T: type, value: anytype) T {
+    const src_bits = comptime @typeInfo(@TypeOf(value)).int.bits;
+    const dst_bits = comptime @typeInfo(T).int.bits;
+    const dst_sign = comptime @typeInfo(T).int.signedness;
+    comptime std.debug.assert(dst_bits <= src_bits);
+    const sign_corrected: std.meta.Int(dst_sign, src_bits) = @bitCast(value);
+    const truncated: std.meta.Int(dst_sign, dst_bits) = @truncate(sign_corrected);
+    return @bitCast(truncated);
+}
+
+pub fn writeWithMask(comptime T: type, reg: *T, mask: T, value: T) void {
+    reg.* = (reg.* & ~mask) | (value & mask);
+}
