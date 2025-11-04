@@ -41,7 +41,7 @@ pub fn iType(comptime op: Operator, comptime sign: std.builtin.Signedness) void 
         if (sign == .unsigned) "U" else "",
         cpu.reg_names[rt],
         cpu.reg_names[rs],
-        rhs,
+        @as(i64, @bitCast(rhs)),
     });
 
     const lhs = cpu.get(rs);

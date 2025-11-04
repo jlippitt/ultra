@@ -24,7 +24,7 @@ pub fn unary(comptime op: UnaryOperator, comptime params: cpu.BranchParams) void
         if (params.link) "AL" else "",
         if (params.likely) "L" else "",
         cpu.reg_names[rs],
-        offset,
+        @as(i32, @bitCast(offset)),
     });
 
     const value = cpu.get(rs);
@@ -50,7 +50,7 @@ pub fn binary(comptime op: BinaryOperator, comptime params: cpu.BranchParams) vo
         if (params.likely) "L" else "",
         cpu.reg_names[rs],
         cpu.reg_names[rt],
-        offset,
+        @as(i32, @bitCast(offset)),
     });
 
     const lhs = cpu.get(rs);
