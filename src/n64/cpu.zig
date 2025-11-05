@@ -209,6 +209,7 @@ fn read(comptime T: type, paddr: u29) T {
 
     return switch (memory_map[paddr >> 20]) {
         .rsp => rsp.read(@truncate(paddr)),
+        .serial_interface => si.readInterface(@truncate(paddr)),
         .pif => si.readPif(@truncate(paddr)),
         else => std.debug.panic("Unmapped CPU read: {X:08}", .{paddr}),
     };
