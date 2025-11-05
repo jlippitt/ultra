@@ -1,8 +1,16 @@
 const std = @import("std");
 const clap = @import("clap");
+const log = @import("./log.zig");
 const n64 = @import("./n64.zig");
 
 const max_file_size = 1073741824; // 1GiB
+
+pub const std_options: std.Options = .{
+    .log_level = .debug,
+    .logFn = log.write,
+};
+
+pub const panic = std.debug.FullPanic(log.panic);
 
 pub fn main() !void {
     const allocator = std.heap.c_allocator;
@@ -47,6 +55,9 @@ pub fn main() !void {
         return err;
     };
     defer allocator.free(rom);
+
+    try log.init("cpu");
+    defer log.deinit();
 
     try n64.init(allocator, &pif, rom);
     defer n64.deinit(allocator);
