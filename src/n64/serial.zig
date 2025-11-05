@@ -31,7 +31,7 @@ pub fn readInterface(addr: u20) u32 {
             // TODO: SI interrupts
             break :blk @bitCast(_status);
         },
-        else => std.debug.panic("TODO: SI register read: {}", .{addr}),
+        else => std.debug.panic("TODO: SI register read: {X:05}", .{addr}),
     };
 }
 
