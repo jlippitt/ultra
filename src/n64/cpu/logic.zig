@@ -40,3 +40,19 @@ pub fn iType(comptime op: Operator) void {
 
     cpu.set(rt, op.apply(cpu.get(rs), imm));
 }
+
+pub fn rType(comptime op: Operator) void {
+    const rs = cpu.rs();
+    const rt = cpu.rt();
+    const rd = cpu.rd();
+
+    std.log.debug("{X:08}: {t} {s}, {s}, {s}", .{
+        cpu.pc(),
+        op,
+        cpu.reg_names[rd],
+        cpu.reg_names[rs],
+        cpu.reg_names[rt],
+    });
+
+    cpu.set(rd, op.apply(cpu.get(rs), cpu.get(rt)));
+}
