@@ -1,5 +1,6 @@
 const std = @import("std");
 const rsp = @import("./rsp.zig");
+const rdp = @import("./rdp.zig");
 const pi = @import("./peripheral.zig");
 const si = @import("./serial.zig");
 const util = @import("./util.zig");
@@ -42,6 +43,9 @@ const Device = enum(u8) {
     peripheral_interface,
     rdram_interface,
     serial_interface,
+    dd_registers,
+    dd_rom,
+    cartridge_sram,
     cartridge_rom,
     pif,
     open_bus,
@@ -60,6 +64,9 @@ const memory_map: [512]Device = blk: {
     map[0x046] = .peripheral_interface;
     map[0x047] = .rdram_interface;
     map[0x048] = .serial_interface;
+    @memset(map[0x050..0x060], .dd_registers);
+    @memset(map[0x060..0x080], .dd_rom);
+    @memset(map[0x080..0x100], .cartridge_sram);
     @memset(map[0x100..0x1fc], .cartridge_rom);
     map[0x1fc] = .pif;
     break :blk map;
@@ -209,7 +216,9 @@ fn read(comptime T: type, paddr: u29) T {
 
     return switch (memory_map[paddr >> 20]) {
         .rsp => rsp.read(@truncate(paddr)),
+        .rdp_command => rdp.readCommand(@truncate(paddr)),
         .serial_interface => si.readInterface(@truncate(paddr)),
+        .dd_rom => 0, // TODO
         .pif => si.readPif(@truncate(paddr)),
         else => std.debug.panic("Unmapped CPU read: {X:08}", .{paddr}),
     };

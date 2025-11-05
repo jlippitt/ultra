@@ -1,5 +1,6 @@
 const std = @import("std");
 const cpu = @import("./n64/cpu.zig");
+const rdp = @import("./n64/rdp.zig");
 const rsp = @import("./n64/rsp.zig");
 const pi = @import("./n64/peripheral.zig");
 const si = @import("./n64/serial.zig");
@@ -7,6 +8,7 @@ const si = @import("./n64/serial.zig");
 pub fn init(allocator: std.mem.Allocator, pif: *align(4) [2048]u8, rom: []align(4) u8) !void {
     cpu.init();
     try rsp.init(allocator);
+    rdp.init();
     pi.init(rom);
     si.init(pif);
 }
@@ -14,6 +16,7 @@ pub fn init(allocator: std.mem.Allocator, pif: *align(4) [2048]u8, rom: []align(
 pub fn deinit(allocator: std.mem.Allocator) void {
     cpu.deinit();
     rsp.deinit(allocator);
+    rdp.deinit();
     pi.deinit();
     si.deinit();
 }
