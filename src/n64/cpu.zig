@@ -9,6 +9,7 @@ const cp0 = @import("./cpu/cp0.zig");
 const jump = @import("./cpu/jump.zig");
 const load = @import("./cpu/load.zig");
 const logic = @import("./cpu/logic.zig");
+const shift = @import("./cpu/shift.zig");
 const store = @import("./cpu/store.zig");
 
 pub const reg_names: [32][]const u8 = .{
@@ -276,7 +277,22 @@ fn dispatchSpecial() void {
     const func: u6 = @truncate(word());
 
     switch (func) {
+        0o00 => shift.fixed(.SLL),
+        0o02 => shift.fixed(.SRL),
+        0o03 => shift.fixed(.SRA),
+        0o04 => shift.variable(.SLL),
+        0o06 => shift.variable(.SRL),
+        0o07 => shift.variable(.SRA),
         0o10 => jump.jr(),
+        0o24 => shift.variable(.DSLL),
+        0o26 => shift.variable(.DSRL),
+        0o27 => shift.variable(.DSRA),
+        0o70 => shift.fixed(.DSLL),
+        0o72 => shift.fixed(.DSRL),
+        0o73 => shift.fixed(.DSRA),
+        0o74 => shift.fixed32(.DSLL),
+        0o76 => shift.fixed32(.DSRL),
+        0o77 => shift.fixed32(.DSRA),
         else => std.debug.panic("CPU special function {o:02} not yet implemented", .{func}),
     }
 }
