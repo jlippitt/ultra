@@ -225,6 +225,7 @@ fn write(comptime T: type, paddr: u29, value: T) void {
         .video_interface => {}, // Ignore for now
         .audio_interface => {}, // Ignore for now
         .peripheral_interface => pi.writeInterface(@truncate(paddr), value),
+        .pif => si.writePif(@truncate(paddr), value),
         else => std.debug.panic("Unmapped CPU write: {X:08}", .{paddr}),
     };
 }
